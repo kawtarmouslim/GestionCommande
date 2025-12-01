@@ -13,9 +13,43 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Produit {
+
+
+    public Long getIdProduit() {
+        return idProduit;
+    }
+
+    public void setIdProduit(Long idProduit) {
+        this.idProduit = idProduit;
+    }
+
+    public String getNomProduit() {
+        return nomProduit;
+    }
+
+    public void setNomProduit(String nomProduit) {
+        this.nomProduit = nomProduit;
+    }
+
+    public double getPrix() {
+        return prix;
+    }
+
+    public void setPrix(double prix) {
+        this.prix = prix;
+    }
+
+    public int getStock() {
+        return stock;
+    }
+
+    public void setStock(int stock) {
+        this.stock = stock;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int idProduit;
+    private Long idProduit;
     private String nomProduit;
     private double prix;
     private int stock;
