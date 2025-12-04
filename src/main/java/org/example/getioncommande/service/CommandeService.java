@@ -37,75 +37,45 @@ public class CommandeService {
 
     @Transactional
     public CommandeDto createCommande(CommandeDto commandeDto) {
-
-        // 1. Récupérer et valider le client
         Client client = clientRepository.findById(commandeDto.getClientIdClient())
-                .orElseThrow(() -> new RuntimeException("Client non trouvé avec l'ID : " + commandeDto.getClientIdClient()));
+                .orElseThrow(() -> new RuntimeException(
+                        "Client non trouvé avec ID : " + commandeDto.getClientIdClient()));
 
-        // 2. Créer l'entité Commande
-        Commande commande = new Commande();
-        commande.setDateCommande(commandeDto.getDateCommande() != null ? commandeDto.getDateCommande() : new Date(System.currentTimeMillis()));
-        commande.setStatus(commandeDto.getStatus() != null ? commandeDto.getStatus() : "EN_COURS");
+        // 🔹 Mapper DTO → Entité
+        Commande commande = modelMapper.map(commandeDto, Commande.class);
         commande.setClient(client);
-        commande.setLignes(new ArrayList<>()); // Important : initialiser la liste
+        commande.setDateCommande(
+                commandeDto.getDateCommande() != null ?
+                        commandeDto.getDateCommande() : new Date(System.currentTimeMillis())
+        );
+        commande.setStatus(commande.getStatus() != null ? commande.getStatus() : "EN_COURS");
+        commande.setLignes(new ArrayList<>());
 
-        // 3. Traiter chaque ligne du DTO
         double total = 0.0;
 
+        // 🔹 Conversion des lignes
         for (CommandeLigneDto ligneDto : commandeDto.getLignes()) {
 
-            // Récupérer le produit
             Produit produit = produitRepository.findById(ligneDto.getProduitIdProduit())
-                    .orElseThrow(() -> new RuntimeException("Produit non trouvé avec l'ID : " + ligneDto.getProduitIdProduit()));
+                    .orElseThrow(() -> new RuntimeException(
+                            "Produit non trouvé avec ID : " + ligneDto.getProduitIdProduit()));
 
-            // Créer la ligne de commande
-            CommandeLigne ligne = new CommandeLigne();
-            ligne.setQuantite(ligneDto.getQuantite());
-            ligne.setPrixUnitaire(ligneDto.getPrixUnitaire());
+            CommandeLigne ligne = modelMapper.map(ligneDto, CommandeLigne.class);
+
             ligne.setProduit(produit);
-            ligne.setCommande(commande); // Relation bidirectionnelle
-
-            // Ajouter la ligne à la commande
+            ligne.setCommande(commande);
             commande.getLignes().add(ligne);
 
-            // Cumuler le total
             total += ligneDto.getQuantite() * ligneDto.getPrixUnitaire();
         }
 
-        // 4. Affecter le total calculé
         commande.setTotal(total);
 
-        // 5. Sauvegarder en base (cascade ALL va persister les lignes aussi)
-        Commande savedCommande = commandeRepository.save(commande);
+        // 🔥 Sauvegarde en cascade
+        Commande saved = commandeRepository.save(commande);
 
-        // 6. Retourner le DTO mis à jour avec l'ID généré et le total calculé
-        return convertToDto(savedCommande);
-    }
+        // 🔄 Entité → DTO via ModelMapper
+        return modelMapper.map(saved, CommandeDto.class);
 
-    // Méthode utilitaire de conversion Entité → DTO (propre et sans boucle infinie)
-    private CommandeDto convertToDto(Commande commande) {
-        CommandeDto dto = new CommandeDto();
-        dto.setIdCommande(commande.getIdCommande());
-        dto.setDateCommande(commande.getDateCommande());
-        dto.setStatus(commande.getStatus());
-        dto.setTotal(commande.getTotal());
-        dto.setClientIdClient(commande.getClient().getIdClient());
-
-        List<CommandeLigneDto> ligneDtos = commande.getLignes().stream()
-                .map(this::convertLigneToDto)
-                .toList();
-
-        dto.setLignes(ligneDtos);
-        return dto;
-    }
-
-    private CommandeLigneDto convertLigneToDto(CommandeLigne ligne) {
-        CommandeLigneDto dto = new CommandeLigneDto();
-        dto.setIdCommandeLigne(ligne.getIdCommandeLigne());
-        dto.setQuantite(ligne.getQuantite());
-        dto.setPrixUnitaire(ligne.getPrixUnitaire());
-        dto.setCommandeIdCommande(ligne.getCommande().getIdCommande());
-        dto.setProduitIdProduit(ligne.getProduit().getIdProduit());
-        return dto;
     }
 }
