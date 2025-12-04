@@ -1,5 +1,6 @@
 package org.example.getioncommande.repository;
 
+import lombok.AllArgsConstructor;
 import org.example.getioncommande.entites.Commande;
 import org.springframework.data.jpa.repository.JpaRepository;
 
